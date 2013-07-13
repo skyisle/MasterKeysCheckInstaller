@@ -24,4 +24,19 @@ android {
         minSdkVersion 7
         targetSdkVersion 16
     }
+
+    signingConfigs {
+        release {
+            storeFile file(apkStoreFile)
+            storePassword apkStorePassword
+            keyAlias apkKeyAlias
+            keyPassword apkKeyPassword
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
 }
