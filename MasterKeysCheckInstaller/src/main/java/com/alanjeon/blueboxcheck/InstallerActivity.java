@@ -1,24 +1,18 @@
 package com.alanjeon.blueboxcheck;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentManager;
-import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class InstallerActivity extends FragmentActivity implements BlueBoxCheckTask.OnCheckResult, View.OnClickListener {
 
@@ -33,6 +27,14 @@ public class InstallerActivity extends FragmentActivity implements BlueBoxCheckT
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_checking);
+
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+        status = (TextView) findViewById(R.id.status);
+        mOk = (Button) findViewById(R.id.ok_button);
+        mCancel = (Button) findViewById(R.id.cancel_button);
+
+        mOk.setOnClickListener(this);
+        mCancel.setOnClickListener(this);
 
         // get intent information
         final Intent intent = getIntent();
@@ -54,31 +56,41 @@ public class InstallerActivity extends FragmentActivity implements BlueBoxCheckT
         }
 
         String apkPath = mPackageURI.getPath();
-        PackageInfo info = getPackageManager().getPackageArchiveInfo(apkPath, 0);
-        info.applicationInfo.sourceDir = apkPath;
-        info.applicationInfo.publicSourceDir = apkPath;
+        ApplicationInfo appInfo = getApplicationInfoFromApk(apkPath);
 
-        ApplicationInfo appinfo = info.applicationInfo;
-        String label = (String) appinfo.loadLabel(getPackageManager());
-        Drawable img = appinfo.loadIcon(getPackageManager());
+        if (appInfo == null) {
+            progressBar.setVisibility(View.GONE);
+            //mCancel.setVisibility(View.GONE);
+            mOk.setVisibility(View.GONE);
+
+            status.setText("Failed to read apk info");
+            return;
+        }
+
+        String label = (String) appInfo.loadLabel(getPackageManager());
+        Drawable img = appInfo.loadIcon(getPackageManager());
 
         View snippetView = findViewById(R.id.uninstall_activity_snippet);
         initSnippet(snippetView, label, img);
 
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
 
-        status = (TextView) findViewById(R.id.status);
         status.setText("Checking ANDROID MASTERKEYS exploit....");
-
-        mOk = (Button) findViewById(R.id.ok_button);
-        mCancel = (Button) findViewById(R.id.cancel_button);
-        mOk.setOnClickListener(this);
-        mCancel.setOnClickListener(this);
 
         mOk.setVisibility(View.GONE);
 
         mBlueBoxCheckTask = new BlueBoxCheckTask(this);
         mBlueBoxCheckTask.execute(mPackageURI);
+    }
+
+    private ApplicationInfo getApplicationInfoFromApk(String apkPath) {
+        PackageInfo info = getPackageManager().getPackageArchiveInfo(apkPath, 0);
+        if (info == null) {
+            return null;
+        }
+        info.applicationInfo.sourceDir = apkPath;
+        info.applicationInfo.publicSourceDir = apkPath;
+
+        return info.applicationInfo;
     }
 
     private View initSnippet(View snippetView, CharSequence label, Drawable icon) {
